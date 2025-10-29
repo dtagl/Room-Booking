@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Booking WebApp (MVP)</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;padding:12px}
+        .btn{padding:8px 12px;border-radius:6px;background:#1976d2;color:#fff;border:none}
+        .slot{display:inline-block;padding:6px;margin:4px;border-radius:6px;border:1px solid #ccc}
+        .slot.busy{background:#ffdddd;color:#800}
+    </style>
+</head>
+<body>
+<h2>Бронирование переговорных комнат</h2>
+<div id="join">
+    <button id="createCompany" class="btn">Создать компанию (MVP)</button>
+</div>
+
+<div id="dashboard" style="display:none">
+    <h3>Комнаты</h3>
+    <div id="rooms"></div>
+    <button id="myBookingsBtn" class="btn">Мои брони</button>
+</div>
+
+<div id="roomView" style="display:none">
+    <h3 id="roomName"></h3>
+    <label>Выберите дату: <input type="date" id="datePicker" /></label>
+    <div id="slots"></div>
+    <button id="backToDash" class="btn">Назад</button>
+</div>
+
+<script>
+    const apiBase = '';
+
+    let token = null;
+    let currentCompany = null;
+    let currentRoomId = null;
+
+    document.getElementById('createCompany').addEventListener('click', async ()=>{
+        const name = prompt('Company name');
+        const pass = prompt('Company password');
+        const display = prompt('Your name');
+        if(!name||!pass||!display) return alert('Cancel');
+        const resp = await fetch('/auth/company/create', {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, password: pass, adminDisplayName: display, adminTelegramId: null })
+        });
+        const j = await resp.json();
+        token = j.token;
+        localStorage.setItem('token', token);
+        currentCompany = j.companyId;
+        showDashboard();
+    });
+
+    function showDashboard(){
+        document.getElementById('join').style.display='none';
+        document.getElementById('dashboard').style.display='';
+        loadRooms();
+    }
+
+    async function loadRooms(){
+        const companyId = currentCompany;
+        const r = await fetch(`/companies/${companyId}/rooms`);
+        const rooms = await r.json();
+        const container = document.getElementById('rooms');
+        container.innerHTML='';
+        rooms.forEach(rm=>{
+            const btn = document.createElement('button');
+            btn.className='btn';
+            btn.textContent = rm.name;
+            btn.onclick = ()=> openRoom(rm.id, rm.name);
+            container.appendChild(btn);
+            container.appendChild(document.createTextNode(' '));
+        });
+    }
+
+    async function openRoom(id, name){
+        currentRoomId = id;
+        document.getElementById('dashboard').style.display='none';
+        document.getElementById('roomView').style.display='';
+        document.getElementById('roomName').textContent = name;
+        document.getElementById('datePicker').value = new Date().toISOString().slice(0,10);
+        loadSlots();
+    }
+
+    document.getElementById('datePicker').addEventListener('change', loadSlots);
+    document.getElementById('backToDash').addEventListener('click', ()=>{ document.getElementById('roomView').style.display='none'; document.getElementById('dashboard').style.display=''; });
+
+    async function loadSlots(){
+        const date = document.getElementById('datePicker').value;
+        const resp = await fetch(`/rooms/${currentRoomId}/availability?date=${date}`, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+        const slots = await resp.json();
+        const el = document.getElementById('slots');
+        el.innerHTML='';
+        slots.forEach(s=>{
+            const div = document.createElement('div');
+            div.className = 'slot' + (s.isAvailable ? '' : ' busy');
+            div.textContent = (new Date(s.start)).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            if(s.isAvailable){
+                div.onclick = ()=> bookSlot(s.start, s.end);
+            } else {
+                div.title = 'Занято';
+                div.onclick = ()=> alert('Занято');
+            }
+            el.appendChild(div);
+        });
+    }
+
+    async function bookSlot(start, end){
+        if(!token) return alert('Not authorized (MVP)');
+        const confirmBook = confirm('Забронировать ' + new Date(start).toLocaleTimeString());
+        if(!confirmBook) return;
+        const resp = await fetch(`/rooms/${currentRoomId}/booking`, {
+            method:'POST',
+            headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body: JSON.stringify({ startAt: start, endAt: end, note: '' })
+        });
+        if(resp.ok){ alert('Забронировано'); loadSlots(); } else { alert('Ошибка: ' + (await resp.text())); }
+    }
+</script>
+</body>
+</html>
