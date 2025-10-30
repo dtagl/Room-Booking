@@ -2,12 +2,12 @@ using Application.Interfaces;
 using Application.Services;
 using Infrastructure;
 using Infrastructure.Persistence;
-using Infrastructure.Repositories;
 using Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +19,24 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddSwaggerGen(opt =>
+{
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "Bank API", Version = "v1" });
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Введите токен JWT: Bearer {ваш_токен}",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            new string[] {}
+        }
+    });
+});
 
 // JWT
 var jwtSecret = configuration["Jwt:Secret"] ?? throw new Exception("Set JWT secret");

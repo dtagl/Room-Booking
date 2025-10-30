@@ -15,4 +15,30 @@ public class AuthService
         await _uow.SaveChangesAsync();
         return (company, admin);
     }
+    public async Task<User?> LoginToCompanyAsync(string name, string password, long? telegramId, string displayName)
+    {
+        var company = _uow.Companies.Query().FirstOrDefault(c => c.Name == name);
+        if (company == null || !_hasher.Verify(company.HashedPassword, password))
+            return null;
+
+        var user = _uow.Users.Query().FirstOrDefault(u => u.CompanyId == company.Id && u.TelegramId == telegramId);
+        if (user == null)
+        {
+            // Создаём нового пользователя
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                CompanyId = company.Id,
+                TelegramId = telegramId,
+                DisplayName = displayName,
+                Role = Role.User,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _uow.Users.AddAsync(user);
+            await _uow.SaveChangesAsync();
+        }
+
+        return user;
+    }
+
 }

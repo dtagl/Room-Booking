@@ -4,6 +4,7 @@ using Application.Services;
 using System.Security.Claims;
 using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("rooms")]
@@ -50,9 +51,13 @@ public class BookingController : ControllerBase
         var userId = Guid.Parse(User.Claims.First(c => c.Type == "userId").Value);
         var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
         var isAdmin = role == "Admin";
+
         await _bookingService.CancelBookingAsync(id, userId, isAdmin);
         return Ok();
     }
+
+
+
 
     public record CreateBookingModel(DateTime StartAt, DateTime EndAt, string? Note);
 }

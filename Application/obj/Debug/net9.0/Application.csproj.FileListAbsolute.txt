@@ -13,3 +13,4 @@ C:\Users\denta\Desktop\C#course\Therewillbe demos\FinalProjectForAlif\Applicatio
 C:\Users\denta\Desktop\C#course\Therewillbe demos\FinalProjectForAlif\Application\obj\Debug\net9.0\refint\Application.dll
 C:\Users\denta\Desktop\C#course\Therewillbe demos\FinalProjectForAlif\Application\obj\Debug\net9.0\Application.pdb
 C:\Users\denta\Desktop\C#course\Therewillbe demos\FinalProjectForAlif\Application\obj\Debug\net9.0\ref\Application.dll
+C:\Users\denta\Desktop\C#course\Therewillbe demos\FinalProjectForAlif\Application\obj\Debug\net9.0\Application.sourcelink.json

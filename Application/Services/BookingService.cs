@@ -43,12 +43,23 @@ public class BookingService
 
     public async Task CancelBookingAsync(Guid bookingId, Guid actorUserId, bool actorIsAdmin)
     {
-        var booking = await _uow.Bookings.GetAsync(bookingId) ?? throw new InvalidOperationException("Booking not found");
-        if (!actorIsAdmin && booking.UserId != actorUserId) throw new UnauthorizedAccessException("No rights to cancel");
+        var booking = await _uow.Bookings.GetAsync(bookingId)
+                      ?? throw new InvalidOperationException("Booking not found");
+
+        var isOwner = booking.UserId == actorUserId;
+
+        if (!actorIsAdmin && !isOwner)
+            throw new UnauthorizedAccessException("No rights to cancel this booking");
+
+        if (booking.Status == BookingStatus.Cancelled)
+            throw new InvalidOperationException("Booking is already cancelled");
+
         booking.Status = BookingStatus.Cancelled;
         booking.CanceledAt = DateTime.UtcNow;
         booking.CanceledBy = actorUserId;
+
         _uow.Bookings.Update(booking);
         await _uow.SaveChangesAsync();
     }
+
 }

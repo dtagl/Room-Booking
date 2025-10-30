@@ -17,11 +17,19 @@
     <button id="createCompany" class="btn">Создать компанию (MVP)</button>
 </div>
 
+
 <div id="dashboard" style="display:none">
     <h3>Комнаты</h3>
     <div id="rooms"></div>
     <button id="myBookingsBtn" class="btn">Мои брони</button>
 </div>
+<div id="loginForm">
+    <h3>Войти в компанию</h3>
+    <input type="text" id="companyName" placeholder="Название компании" />
+    <input type="password" id="companyPassword" placeholder="Пароль" />
+    <button id="loginBtn" class="btn">Войти</button>
+</div>
+
 
 <div id="roomView" style="display:none">
     <h3 id="roomName"></h3>
@@ -117,6 +125,32 @@
         });
         if(resp.ok){ alert('Забронировано'); loadSlots(); } else { alert('Ошибка: ' + (await resp.text())); }
     }
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const name = document.getElementById('companyName').value;
+        const password = document.getElementById('companyPassword').value;
+        const telegramId = Telegram.WebApp.initDataUnsafe.user?.id;
+        const displayName = Telegram.WebApp.initDataUnsafe.user?.first_name;
+
+        const resp = await fetch('/auth/company/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Telegram-Id': telegramId,
+                'X-Telegram-Name': displayName
+            },
+            body: JSON.stringify({ name, password })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            localStorage.setItem('jwt', data.token);
+            alert('Успешный вход!');
+            // Перейти на dashboard
+        } else {
+            alert('Ошибка входа');
+        }
+    });
+
 </script>
 </body>
 </html>

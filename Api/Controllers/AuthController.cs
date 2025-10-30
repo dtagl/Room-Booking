@@ -36,4 +36,22 @@ public class AuthController : ControllerBase
         var token = new JwtSecurityToken(claims: claims, expires: DateTime.UtcNow.AddHours(6), signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+    
+    [HttpPost("company/login")]
+    public async Task<IActionResult> LoginCompany([FromBody] LoginCompanyDto dto)
+    {
+        // Получаем Telegram user_id из initData (или временно передаём вручную)
+        var telegramId = Request.Headers.ContainsKey("X-Telegram-Id")
+            ? long.Parse(Request.Headers["X-Telegram-Id"])
+            : (long?)null;
+
+        var displayName = Request.Headers["X-Telegram-Name"].FirstOrDefault() ?? "User";
+
+        var user = await _auth.LoginToCompanyAsync(dto.Name, dto.Password, telegramId, displayName);
+        if (user == null) return Unauthorized("Неверное имя компании или пароль");
+
+        var token = CreateJwt(user);
+        return Ok(new { token, companyId = user.CompanyId });
+    }
+
 }
